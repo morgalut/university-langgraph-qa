@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:16
-    container_name: university-postgres
     environment:
       POSTGRES_USER: university
       POSTGRES_PASSWORD: university
@@ -10,8 +9,8 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
-      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+      - ./university_langgraph_qa/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./university_langgraph_qa/db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U university -d university_db"]
       interval: 5s
@@ -20,7 +19,6 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:8
-    container_name: university-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
@@ -31,9 +29,9 @@ services:
         condition: service_healthy
 
   api:
-    build: .
-    container_name: university-qa-api
-    env_file: .env
+    build: ./university_langgraph_qa
+    env_file:
+      - ./university_langgraph_qa/.env
     environment:
       DATABASE_URL: postgresql+psycopg://university:university@postgres:5432/university_db
     ports:
@@ -42,7 +40,14 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - .:/app
+      - ./university_langgraph_qa:/app
+
+  frontend:
+    build: ./university_qa_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
 
 volumes:
   pgdata:
